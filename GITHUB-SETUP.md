@@ -21,7 +21,7 @@ Never put a `service_role` or secret key in an HTML file or GitHub repository. T
 
 ## 3. Publish on GitHub Pages
 
-Upload the updated `Delly’s Birthday Braai.html` and `admin.html` to the root of the GitHub Pages repository, replacing those two files. Keep the existing `index.html` redirect. Enable Pages in the repository settings if it is not already enabled.
+Upload the updated `Delly’s Birthday Braai.html`, `admin.html`, and `delly-scenic-portrait.png` to the root of the GitHub Pages repository, replacing the two HTML files and adding the transparent portrait. Keep the existing `index.html` redirect. Enable Pages in the repository settings if it is not already enabled.
 
 In Supabase, open **Authentication → URL Configuration** and add the exact admin page URL to the allowed redirect URLs, for example:
 
