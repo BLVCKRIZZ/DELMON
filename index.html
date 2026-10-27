@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Minecraft Chest Sorter</title>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#e9e0cc;--card:#f6efdf;--ink:#2b2116;--mute:#6b5a44;--line:#cdbf9f;--hit:#2f8f4e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1f23;--card:#2a2d33;--ink:#efe8d8;--mute:#a9a08c;--line:#41454d;--hit:#5fd68a}}
+:root[data-theme="dark"]{--bg:#1d1f23;--card:#2a2d33;--ink:#efe8d8;--mute:#a9a08c;--line:#41454d;--hit:#5fd68a}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 "Atkinson Hyperlegible",system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:28px 18px 56px}
+h1,h2,.px{font-family:"Pixelify Sans","Courier New",monospace;font-weight:700;letter-spacing:.01em}
+h1{font-size:clamp(32px,6vw,52px);line-height:1.05;margin:0 0 6px}
+.sub{color:var(--mute);margin:0 0 22px;max-width:52ch}
+.nav{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}
+.nav a{color:var(--ink);background:var(--card);border:2px solid var(--line);padding:6px 12px;text-decoration:none}
+.nav a[aria-current="page"]{border-color:var(--hit);font-weight:700}
+.nav a:focus-visible{outline:3px solid var(--hit);outline-offset:2px}
+.search{width:100%;font:500 22px "Pixelify Sans","Courier New",monospace;padding:14px 16px;border:3px solid var(--ink);border-radius:0;background:var(--card);color:var(--ink);box-shadow:5px 5px 0 var(--ink)}
+.search:focus-visible{outline:3px solid var(--hit);outline-offset:3px}
+.sort-controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 8px}
+.sort-controls label{font-weight:700}
+.sort-controls select{max-width:100%;padding:7px 10px;border:2px solid var(--ink);border-radius:0;background:var(--card);color:var(--ink);font:inherit}
+.sort-controls select:focus-visible{outline:3px solid var(--hit);outline-offset:2px}
+.always-items{display:flex;align-items:center;gap:7px;font-weight:400!important;cursor:pointer}
+.always-items input{width:18px;height:18px;margin:0;accent-color:var(--hit)}
+.always-items:focus-within{outline:3px solid var(--hit);outline-offset:3px}
+.chest-summary{margin:0 0 12px;color:var(--mute);font-size:14px}
+.hero{margin:26px 0 34px;min-height:150px}
+.answer{display:flex;gap:20px;align-items:center;background:var(--card);border:3px solid var(--ink);padding:18px 20px}
+.answer .chest{width:112px;flex:none}
+.answer .item{font-size:20px;color:var(--mute);margin:0}
+.answer .dest{font-family:"Pixelify Sans","Courier New",monospace;font-weight:700;font-size:clamp(28px,5vw,42px);line-height:1.1;margin:2px 0 0}
+.also{margin:14px 0 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.also span{color:var(--mute);margin-right:4px}
+button.pill{font:inherit;font-size:15px;padding:5px 11px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;border-radius:0}
+button.pill:hover{border-color:var(--ink)}
+button.pill:focus-visible{outline:3px solid var(--hit);outline-offset:2px}
+.recipe{margin-top:16px;background:var(--card);border:3px solid var(--hit);padding:16px 20px}
+.recipe h2{font-size:23px;margin:0 0 8px}
+.recipe p{margin:5px 0}
+.recipe .label{color:var(--mute);font-weight:700}
+.craft-layout{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:clamp(12px,4vw,30px);padding:12px 0}
+.craft-grid{display:grid;grid-template-columns:repeat(3,clamp(48px,15vw,68px));gap:4px}
+.craft-grid.small{grid-template-columns:repeat(2,clamp(56px,18vw,72px))}
+.craft-slot,.craft-result{position:relative;display:flex;align-items:center;justify-content:center;text-align:center;min-width:0;aspect-ratio:1;background:#858585;border:3px solid;border-color:#555 #eee #eee #555;color:#171717;font-size:clamp(9px,2.5vw,12px);font-weight:700;line-height:1.05;padding:3px;overflow-wrap:anywhere}
+.craft-slot.empty{background:#c8c8c8}
+.craft-slot:not(.empty)::before,.craft-result::before{content:"";position:absolute;inset:5px;background:#b98a49;opacity:.34;image-rendering:pixelated;pointer-events:none}
+.craft-slot span,.craft-result span{position:relative;z-index:1}
+.craft-slot small{position:absolute;right:2px;bottom:0;font-size:10px;text-shadow:1px 1px #fff}
+.craft-arrow{color:var(--mute);font-size:clamp(32px,8vw,48px);line-height:1}
+.craft-result{width:clamp(58px,18vw,76px);background:#c8c8c8}
+.recipe .ingredients{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0}
+.recipe .ingredient{border:2px solid var(--line);padding:3px 9px}
+.empty p{margin:0 0 10px;color:var(--mute)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+.box{background:var(--card);border:3px solid var(--line);padding:14px 16px 16px}
+.box.hit{border-color:var(--hit);box-shadow:5px 5px 0 var(--hit)}
+.box.dim{opacity:.55}
+.box summary{display:flex;gap:12px;align-items:center;cursor:pointer;list-style:none}
+.box summary::-webkit-details-marker{display:none}
+.box summary::marker{content:""}
+.box summary::after{content:"+";flex:none;font-size:23px;font-weight:700;line-height:1}
+.box[open] summary::after{content:"−"}
+.box .chest{width:44px;flex:none}
+.box-heading{min-width:0;flex:1}
+.box h2{font-size:21px;margin:0;line-height:1.15}
+.box-count{display:block;color:var(--mute);font-size:13px;line-height:1.3}
+.box-description{display:block;color:var(--mute);font-size:14px;line-height:1.3;margin-top:3px}
+.box summary:focus-visible{outline:3px solid var(--hit);outline-offset:3px}
+.box[open] .chips{margin-top:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:14px;padding:2px 8px;border:2px solid var(--line);background:transparent;color:var(--ink);font-family:inherit;cursor:pointer;border-radius:0}
+.chip:hover{border-color:var(--ink)}
+.chip.on{background:var(--hit);border-color:var(--hit);color:var(--bg);font-weight:700}
+.chip:focus-visible{outline:3px solid var(--hit);outline-offset:2px}
+@media (max-width:520px){.answer{flex-direction:column;align-items:flex-start}.answer .chest{width:84px}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Minecraft chest sorter</h1>
+  <p class="sub">Find the right chest for every item, or open the crafting guide for recipe layouts.</p>
+  <nav class="nav" aria-label="Main navigation">
+    <a href="index.html" aria-current="page">Chest sorter</a>
+    <a href="crafting.html">Crafting guide</a>
+  </nav>
+  <div class="sort-controls">
+    <label for="density">Chest organization</label>
+    <select id="density" aria-label="Choose chest organization">
+      <option value="extra">Extra compressed</option>
+      <option value="more">More compressed</option>
+      <option value="compressed" selected>Compressed</option>
+      <option value="detailed">Detailed</option>
+      <option value="fully">Fully detailed</option>
+    </select>
+    <label class="always-items"><input id="show-all-items" type="checkbox"> Always show items in every chest</label>
+  </div>
+  <p id="chest-summary" class="chest-summary" aria-live="polite"></p>
+  <input id="q" class="search" type="search" placeholder="Try “lead”, “oak planks” or “diamond pickaxe”" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search for an item">
+  <div id="hero" class="hero" aria-live="polite"></div>
+  <div id="grid" class="grid"></div>
+</main>
+<script src="recipes.js"></script>
+<script src="item-catalog.js"></script>
+<script>
+const CHEST_CATEGORIES=[
+{id:'stone',name:'Stone & Deepslate',c:'#8a8f98'},
+{id:'geology',name:'Granite, Tuff & Geology',c:'#989b9d'},
+{id:'soil',name:'Soil, Sand & Loose Blocks',c:'#a98d61'},
+{id:'bricks',name:'Bricks & Masonry',c:'#b87f55'},
+{id:'stonebuild',name:'Sandstone, Quartz & Purpur',c:'#b08b65'},
+{id:'stoneStairs',name:'Stone & Brick Stairs',c:'#a98164'},
+{id:'otherStairs',name:'Other Stone Stairs',c:'#b58d70'},
+{id:'stoneSlabs',name:'Stone & Brick Slabs',c:'#ad8e71'},
+{id:'otherSlabs',name:'Other Stone Slabs',c:'#bd987a'},
+{id:'walls',name:'Stone & Brick Walls',c:'#9a826b'},
+{id:'logs',name:'Logs & Tree Trunks',c:'#5a9e3d'},
+{id:'woodblocks',name:'Wood, Stems & Hyphae',c:'#6d9d4c'},
+{id:'strippedwood',name:'Stripped Logs & Wood',c:'#a68759'},
+{id:'planks',name:'Planks & Bamboo Blocks',c:'#7ca957'},
+{id:'woodshape',name:'Wood Slabs & Stairs',c:'#7a9e55'},
+{id:'wooddoors',name:'Doors',c:'#819c50'},
+{id:'trapdoors',name:'Trapdoors',c:'#8da64e'},
+{id:'woodfences',name:'Wood Fences & Gates',c:'#7a9147'},
+{id:'signs',name:'Signs & Hanging Signs',c:'#91a953'},
+{id:'woodcontrols',name:'Wood Buttons & Pressure Plates',c:'#9bb65d'},
+{id:'nether',name:'Nether Blocks & Materials',c:'#c64c45'},
+{id:'netherplants',name:'Nether Fungi & Plants',c:'#9e4b46'},
+{id:'end',name:'End Blocks & Finds',c:'#9d83c8'},
+{id:'ocean',name:'Ocean Finds & Sponge',c:'#39a9bd'},
+{id:'seabuild',name:'Prismarine & Conduit Blocks',c:'#328d9f'},
+{id:'coralblocks',name:'Coral Blocks',c:'#e48b87'},
+{id:'coralfans',name:'Coral Fans',c:'#da7ca0'},
+{id:'coral',name:'Coral & Reef Pieces',c:'#ce7191'},
+{id:'marine',name:'Sea Creatures & Aquatic Buckets',c:'#438ca9'},
+{id:'ores',name:'Ores & Raw Minerals',c:'#3cc4d6'},
+{id:'metals',name:'Ingots, Gems & Mineral Blocks',c:'#54aeb7'},
+{id:'copper',name:'Copper Building Blocks',c:'#c77b4a'},
+{id:'waxedcopper',name:'Waxed Copper Blocks',c:'#d29161'},
+{id:'coppertech',name:'Copper Redstone Parts',c:'#d2874d'},
+{id:'redstone',name:'Redstone & Mechanisms',c:'#d6402f'},
+{id:'machines',name:'Redstone Machines',c:'#bc3c30'},
+{id:'controls',name:'Redstone Controls & Rails',c:'#dc5945'},
+{id:'containers',name:'Chests, Barrels & Containers',c:'#9c744b'},
+{id:'shulkers',name:'Shulker Boxes',c:'#8874a8'},
+{id:'shelves',name:'Bookshelves & Storage Shelves',c:'#a98560'},
+{id:'workstations',name:'Crafting & Workstations',c:'#ae8056'},
+{id:'mounts',name:'Mounts, Leads & Saddles',c:'#6d9b8a'},
+{id:'boats',name:'Boats & Rafts',c:'#568d91'},
+{id:'farm',name:'Farming, Crops & Animal Care',c:'#8bb34b'},
+{id:'food',name:'Food, Produce & Ingredients',c:'#e0a526'},
+{id:'preparedfood',name:'Ready-to-Eat Food & Meals',c:'#cf8e24'},
+{id:'foodprotein',name:'Raw Meat & Fish',c:'#b97955'},
+{id:'minetools',name:'Pickaxes & Axes',c:'#7a86c9'},
+{id:'farmtools',name:'Shovels & Hoes',c:'#687bb6'},
+{id:'utilitygear',name:'Utility Tools & Gear',c:'#888fc4'},
+{id:'armor',name:'Armor & Wearables',c:'#7184b9'},
+{id:'combat',name:'Weapons & Projectiles',c:'#bb5149'},
+{id:'drops',name:'Mob Drops & Materials',c:'#b87942'},
+{id:'loot',name:'Rare Mob Loot & Relics',c:'#a5754b'},
+{id:'brewing',name:'Brewing & Potions',c:'#a653c9'},
+{id:'enchant',name:'Books & Enchanting',c:'#7f6fbb'},
+{id:'groundcover',name:'Moss, Grass & Ground Cover',c:'#579347'},
+{id:'wildplants',name:'Vines, Roots & Wild Plants',c:'#6fac54'},
+{id:'foliage',name:'Leaves & Saplings',c:'#78a64b'},
+{id:'flowers',name:'Flowers & Blossoms',c:'#bd749d'},
+{id:'dyes',name:'Dyes',c:'#d2779f'},
+{id:'terracotta',name:'Terracotta Blocks',c:'#bb806d'},
+{id:'glazed',name:'Glazed Terracotta',c:'#bf7195'},
+{id:'wool',name:'Wool Blocks',c:'#c779a2'},
+{id:'carpets',name:'Carpets',c:'#ba6e9a'},
+{id:'concrete',name:'Concrete Blocks',c:'#a491be'},
+{id:'beds',name:'Beds',c:'#d87972'},
+{id:'banners',name:'Banners & Flags',c:'#a77dbd'},
+{id:'glass',name:'Glass Blocks',c:'#72a9c2'},
+{id:'panes',name:'Glass Panes',c:'#7fb8ce'},
+{id:'pottery',name:'Pottery & Decorated Pots',c:'#b37756'},
+{id:'powder',name:'Concrete Powder',c:'#9682ad'},
+{id:'lamps',name:'Lanterns & Light Blocks',c:'#d5a84e'},
+{id:'torches',name:'Torches & Candles',c:'#e0b956'},
+{id:'decor',name:'Decorations & Displays',c:'#cc8e54'},
+{id:'utility',name:'Utility Blocks & Building Parts',c:'#888f72'},
+{id:'domesticmobs',name:'Farm & Domestic Spawn Eggs',c:'#9b8b68'},
+{id:'wildmobs',name:'Wild & Neutral Spawn Eggs',c:'#82946a'},
+{id:'overworldmobs',name:'Overworld Hostile Spawn Eggs',c:'#876a57'},
+{id:'dimensionmobs',name:'Nether & End Hostile Spawn Eggs',c:'#a24f49'},
+{id:'music',name:'Music & Records',c:'#7e81ae'}
+].map(c=>({...c,items:[]}));
+
+const chestById=new Map(CHEST_CATEGORIES.map(chest=>[chest.id,chest]));
+window.MinecraftItemCatalog.forEach(([name,chestId])=>{
+  const chest=chestById.get(chestId);
+  if(!chest)throw new Error(`Unknown chest category "${chestId}" for "${name}".`);
+  if(!chest.items.includes(name))chest.items.push(name);
+});
+
+const COMPRESSED_GROUPS=[
+{id:'stonebuild',name:'Stone, Soil & Masonry',categories:['stone','geology','soil','bricks','stonebuild','stoneStairs','otherStairs','stoneSlabs','otherSlabs','walls']},
+{id:'wood',name:'Wood & Wooden Parts',categories:['logs','woodblocks','strippedwood','planks','woodshape','wooddoors','trapdoors','woodfences','signs','woodcontrols']},
+{id:'nether',name:'Nether & End Blocks',categories:['nether','netherplants','end']},
+{id:'ocean',name:'Ocean & Coral Blocks',categories:['ocean','seabuild','coralblocks','coralfans','coral','marine']},
+{id:'minerals',name:'Ores, Gems & Copper',categories:['ores','metals','copper','waxedcopper']},
+{id:'redstone',name:'Redstone & Mechanisms',categories:['coppertech','redstone','machines','controls']},
+{id:'storage',name:'Storage & Workstations',categories:['containers','shulkers','shelves','workstations']},
+{id:'travel',name:'Mounts, Leads & Boats',categories:['mounts','boats']},
+{id:'farming',name:'Farming & Crops',categories:['farm']},
+{id:'food',name:'Food & Ingredients',categories:['food','preparedfood','foodprotein']},
+{id:'tools',name:'Tools, Armor & Weapons',categories:['minetools','farmtools','utilitygear','armor','combat']},
+{id:'drops',name:'Mob Drops & Rare Loot',categories:['drops','loot']},
+{id:'magic',name:'Brewing & Enchanting',categories:['brewing','enchant']},
+{id:'plants',name:'Plants, Flowers & Ground Cover',categories:['groundcover','wildplants','foliage','flowers']},
+{id:'color',name:'Dyes & Colorful Blocks',categories:['dyes','terracotta','glazed','wool','carpets','concrete','powder']},
+{id:'decor',name:'Decor, Glass & Lighting',categories:['beds','banners','glass','panes','pottery','lamps','torches','decor','utility']},
+{id:'music',name:'Music & Records',categories:['music']}
+];
+const MORE_GROUPS=[
+{id:'stoneWood',name:'Stone & Wood Building Blocks',groups:['stonebuild','wood']},
+{id:'nether',name:'Nether Blocks & Materials',groups:['nether']},
+{id:'ocean',name:'Ocean, Coral & Marine Finds',groups:['ocean']},
+{id:'minerals',name:'Ores, Gems & Copper',groups:['minerals']},
+{id:'redstone',name:'Redstone & Mechanisms',groups:['redstone']},
+{id:'storageTravel',name:'Storage, Workstations & Travel',groups:['storage','travel']},
+{id:'farmFood',name:'Farming & Food',groups:['farming','food']},
+{id:'gear',name:'Tools, Armor & Weapons',groups:['tools']},
+{id:'mobsMagic',name:'Mob Drops, Brewing & Enchanting',groups:['drops','magic']},
+{id:'plants',name:'Plants & Flowers',groups:['plants']},
+{id:'color',name:'Dyes & Colorful Blocks',groups:['color']},
+{id:'decor',name:'Decor, Glass & Lighting',groups:['decor']},
+{id:'music',name:'Music & Records',groups:['music']}
+];
+const EXTRA_GROUPS=[
+{id:'stoneWood',name:'Stone & Wood Building Blocks',groups:['stoneWood']},
+{id:'nether',name:'Nether Blocks & Materials',groups:['nether']},
+{id:'ocean',name:'Ocean, Coral & Marine Finds',groups:['ocean']},
+{id:'resources',name:'Minerals & Redstone',groups:['minerals','redstone']},
+{id:'storageTravel',name:'Storage, Workstations & Travel',groups:['storageTravel']},
+{id:'farmFood',name:'Farming & Food',groups:['farmFood']},
+{id:'gear',name:'Tools, Armor & Weapons',groups:['gear']},
+{id:'mobsMagic',name:'Mob Drops, Brewing & Enchanting',groups:['mobsMagic']},
+{id:'nature',name:'Plants, Color & Decorations',groups:['plants','color','decor']},
+{id:'music',name:'Music & Records',groups:['music']}
+];
+function aggregateGroups(groups,sourceGroups){
+  const sourceById=new Map(sourceGroups.map(group=>[group.id,group]));
+  const categoriesById=new Map(CHEST_CATEGORIES.map(category=>[category.id,category]));
+  function getCategoryIds(group){
+    if(group.categories)return group.categories;
+    return group.groups.flatMap(id=>{
+      const source=sourceById.get(id);
+      if(!source)throw new Error(`Unknown chest group "${id}" in "${group.id}".`);
+      return getCategoryIds(source);
+    });
+  }
+  return groups.map(group=>{
+    const categoryIds=getCategoryIds(group);
+    const categories=categoryIds.map(id=>{
+      const category=categoriesById.get(id);
+      if(!category)throw new Error(`Unknown chest category "${id}" in "${group.id}".`);
+      return category;
+    });
+    return {...group,categoryIds,c:categories[0]?.c??'#888f72',items:categories.flatMap(category=>category.items)};
+  }).filter(group=>group.items.length);
+}
+function expandGroups(targetCount){
+  const groups=aggregateGroups(EXTRA_GROUPS,[...MORE_GROUPS,...COMPRESSED_GROUPS]);
+  const categoriesById=new Map(CHEST_CATEGORIES.map(category=>[category.id,category]));
+  while(groups.length<targetCount){
+    const parent=groups.filter(group=>group.categoryIds.length>1)
+      .sort((a,b)=>b.items.length-a.items.length||b.categoryIds.length-a.categoryIds.length)[0];
+    if(!parent)throw new Error(`Cannot expand chest groups to ${targetCount}.`);
+    const categoryId=parent.categoryIds
+      .map(id=>categoriesById.get(id))
+      .sort((a,b)=>b.items.length-a.items.length)[0].id;
+    parent.categoryIds=parent.categoryIds.filter(id=>id!==categoryId);
+    const remainingCategories=parent.categoryIds.map(id=>categoriesById.get(id));
+    parent.name=remainingCategories.map(category=>category.name).join(' · ');
+    parent.items=remainingCategories.flatMap(category=>category.items);
+    parent.c=remainingCategories[0].c;
+    const category=categoriesById.get(categoryId);
+    groups.push({...category,categoryIds:[categoryId]});
+  }
+  return groups;
+}
+function getChestsForMode(mode){
+  if(mode==='extra')return aggregateGroups(EXTRA_GROUPS,[...MORE_GROUPS,...COMPRESSED_GROUPS]);
+  if(mode==='more')return expandGroups(26);
+  if(mode==='compressed')return expandGroups(43);
+  if(mode==='detailed')return expandGroups(60);
+  if(mode==='fully')return CHEST_CATEGORIES.filter(category=>category.items.length);
+  throw new Error(`Unknown chest organization "${mode}".`);
+}
+
+let CHESTS=getChestsForMode('compressed');
+const SAMPLES=['crafting table','lead','oak planks','nether bricks','end stone','kelp','diamond pickaxe'];
+const $=s=>document.querySelector(s);
+const input=$('#q'),hero=$('#hero'),grid=$('#grid'),density=$('#density'),summary=$('#chest-summary'),showAllItems=$('#show-all-items');
+
+function h(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e}
+function chestSvg(c,cls){
+  const d=document.createElement('div');
+  d.innerHTML='<svg viewBox="0 0 16 14" shape-rendering="crispEdges" aria-hidden="true" style="--c:'+c+';display:block;width:100%"><rect width="16" height="14" fill="#3a2412"/><rect x="1" y="1" width="14" height="5" fill="#9a6a34"/><rect x="1" y="7" width="14" height="6" fill="#b2803f"/><rect x="1" y="6" width="14" height="1" fill="#4a2f17"/><rect x="3" y="1" width="1" height="12" fill="#6b4520"/><rect x="12" y="1" width="1" height="12" fill="#6b4520"/><rect x="7" y="5" width="2" height="3" fill="var(--c)"/></svg>';
+  const w=h('div','chest');w.className=cls;w.appendChild(d.firstChild);return w;
+}
+
+function find(q){
+  q=q.toLowerCase().trim();if(!q)return[];
+  const vs=[q];if(q.endsWith('es'))vs.push(q.slice(0,-2));if(q.endsWith('s'))vs.push(q.slice(0,-1));
+  const out=[];
+  CHESTS.forEach(ch=>ch.items.forEach(it=>{
+    if(vs.includes(it))out.push({it,ch,s:100});
+  }));
+  if(out.length)return out;
+  CHESTS.forEach(ch=>{
+    if(ch.name.toLowerCase().includes(q))out.push({it:ch.items[0],ch,s:50+q.length});
+    ch.items.forEach(it=>{
+    let s=0;
+    vs.forEach(v=>{
+      if(v.length<2)return;
+      if(it===v)s=Math.max(s,100);
+      else if(it.startsWith(v)||it.includes(' '+v))s=Math.max(s,60+v.length);
+      else if(v.length>=3&&it.includes(v))s=Math.max(s,30+v.length);
+      if(it.length>=3&&v.includes(it)&&it.length>=Math.ceil(v.length*.65))s=Math.max(s,40+it.length);
+    });
+    if(s)out.push({it,ch,s});
+    });
+  });
+  return out.sort((a,b)=>b.s-a.s||a.it.localeCompare(b.it)).slice(0,8);
+}
+
+
+function setQuery(v){input.value=v;render();input.focus()}
+
+function render(){
+  const q=input.value.trim(),res=find(q),recipe=findRecipe(q);
+  const itemCount=CHESTS.reduce((total,chest)=>total+chest.items.length,0);
+  const chestCount=CHESTS.reduce((total,chest)=>total+Math.ceil(chest.items.length/27),0);
+  const modeName=density.options[density.selectedIndex].text;
+  summary.textContent=`${modeName}: showing ${CHESTS.length} labeled chest groups · about ${chestCount} physical chests · ${itemCount} Survival items. Estimate assumes one stack per item type (27 types per chest); actual quantities may need more chests.`;
+  hero.replaceChildren();
+  if(!q){
+    const e=h('div','empty');
+    e.appendChild(h('p',null,'Not sure where to start? Try one of these:'));
+    const row=h('div','also');
+    SAMPLES.forEach(s=>{const b=h('button','pill',s);b.type='button';b.onclick=()=>setQuery(s);row.appendChild(b)});
+    e.appendChild(row);hero.appendChild(e);
+  }else if(!res.length){
+    const e=h('div','empty');
+    e.appendChild(h('p',null,'No chest found for “'+q+'”. Try a simpler name, like “iron” instead of “iron pickaxe head”, or check the lists below.'));
+    hero.appendChild(e);
+  }else{
+    const top=res[0],a=h('div','answer');
+    a.appendChild(chestSvg(top.ch.c,'chest'));
+    const t=h('div');
+    t.appendChild(h('p','item',cap(top.it)+' goes in'));
+    t.appendChild(h('p','dest',top.ch.name));
+    a.appendChild(t);hero.appendChild(a);
+    const rest=res.slice(1);
+    if(rest.length){
+      const row=h('div','also');row.appendChild(h('span',null,'Also matches:'));
+      rest.forEach(r=>{const b=h('button','pill',cap(r.it)+' → '+r.ch.name);b.type='button';b.onclick=()=>setQuery(r.it);row.appendChild(b)});
+      hero.appendChild(row);
+    }
+  }
+  if(recipe){
+    const card=h('section','recipe');
+    card.appendChild(h('h2',null,`How to craft ${cap(recipe.name)}`));
+    card.appendChild(h('p',null,`${recipe.station} · Makes ${recipe.output}`));
+    card.appendChild(h('p','label','Crafting'));
+    const size=recipe.station==='Crafting grid'?2:3;
+    const layout=h('div','craft-layout');
+    const craftGrid=h('div',`craft-grid${size===2?' small':''}`);
+    getRecipeSlots(recipe,size).forEach(slot=>{
+      const cell=h('div','craft-slot'+(slot?'':' empty'));
+      if(slot){
+        cell.appendChild(h('span',null,slot.item));
+        if(slot.count>1)cell.appendChild(h('small',null,String(slot.count)));
+        cell.title=`${slot.item}${slot.count>1?` × ${slot.count}`:''}`;
+      }
+      craftGrid.appendChild(cell);
+    });
+    layout.appendChild(craftGrid);
+    layout.appendChild(h('span','craft-arrow','➜'));
+    const result=h('div','craft-result');
+    result.appendChild(h('span',null,cap(recipe.name)));
+    result.title=`${recipe.output} × ${cap(recipe.name)}`;
+    layout.appendChild(result);
+    card.appendChild(layout);
+    card.appendChild(h('p','label','Ingredients'));
+    const ingredients=h('div','ingredients');
+    recipe.ingredients.forEach(([item,count])=>ingredients.appendChild(h('span','ingredient',`${count} × ${item}`)));
+    card.appendChild(ingredients);
+    card.appendChild(h('p','label','Crafting steps'));
+    card.appendChild(h('p',null,recipe.steps));
+    hero.appendChild(card);
+  }
+  const hitIds=new Set(res.map(r=>r.ch.id)),hitItems=new Set(res.map(r=>r.ch.id+'|'+r.it));
+  grid.replaceChildren();
+  CHESTS.forEach(ch=>{
+    const isHit=hitIds.has(ch.id),box=h('details','box'+(res.length?(isHit?' hit':' dim'):''));
+    box.open=showAllItems.checked||Boolean(q&&isHit);
+    const hd=h('summary');hd.appendChild(chestSvg(ch.c,'chest'));
+    const heading=h('div','box-heading'),title=h('h2',null,ch.name),count=Math.ceil(ch.items.length/27);
+    heading.appendChild(title);
+    heading.appendChild(h('small','box-count',`${count} ${count===1?'chest':'chests'} · ${ch.items.length} item types`));
+    const categoryIds=ch.categoryIds??[ch.id],categoryNames=categoryIds.map(id=>chestById.get(id)?.name).filter(Boolean);
+    const shownCategories=categoryNames.slice(0,3);
+    const remainingCategories=categoryNames.length-shownCategories.length;
+    const description=categoryNames.length>1
+      ?`Groups ${shownCategories.join(', ')}${remainingCategories?`, and ${remainingCategories} more related categories`:''}.`
+      :`For storing ${ch.name.toLowerCase()}.`;
+    heading.appendChild(h('small','box-description',description));
+    hd.appendChild(heading);box.appendChild(hd);
+    const chips=h('div','chips');
+    ch.items.forEach(it=>{const b=h('button','chip'+(hitItems.has(ch.id+'|'+it)?' on':''),it);b.type='button';b.onclick=()=>setQuery(it);chips.appendChild(b)});
+    box.appendChild(chips);grid.appendChild(box);
+  });
+}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+input.addEventListener('input',render);
+density.addEventListener('change',()=>{CHESTS=getChestsForMode(density.value);render()});
+showAllItems.addEventListener('change',render);
+render();
+</script>
+</body>
+</html>

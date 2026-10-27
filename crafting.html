@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Minecraft Crafting Table</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#e9f8f6;--panel:#c6c6c6;--panel-inner:#373737;--slot:#8b8b8b;--ink:#292929;--line:#f0f0f0;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.35 "Atkinson Hyperlegible",system-ui,sans-serif}
+button,input,select{font:inherit}
+.app{width:min(1540px,calc(100% - 28px));height:max(620px,min(760px,calc(100vh - 28px)));margin:14px auto;display:grid;grid-template-columns:minmax(235px,.86fr) minmax(360px,1.24fr) minmax(330px,1.18fr);grid-template-rows:auto minmax(0,1fr) auto;gap:10px}
+.topbar{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:16px}
+h1,h2{font-family:"Pixelify Sans","Courier New",monospace;font-weight:700;letter-spacing:.01em}
+h1{font-size:clamp(24px,3vw,36px);line-height:1;margin:0}
+.subtitle{margin:4px 0 0;color:#536b69;font-size:14px}
+.nav{display:flex;gap:8px;flex:none}
+.nav a{padding:7px 11px;border:2px solid #7d9d99;background:#effbf9;color:#243d3b;text-decoration:none}
+.nav a[aria-current="page"]{background:#c5dfdb;border-color:#455f5b;font-weight:700}
+.nav a:hover{background:#d6eeea;border-color:#387c79;color:#172b29}
+.nav a:focus-visible,.recipe-choice:focus-visible,.item-button:focus-visible,input:focus-visible,select:focus-visible,.recipe-pagination button:focus-visible{outline:3px solid #387c79;outline-offset:2px}
+.panel{min-width:0;min-height:0;background:var(--panel);border:5px solid;border-color:#f4f4f4 #777 #777 #f4f4f4;box-shadow:2px 2px 0 #fff;display:flex;flex-direction:column;padding:10px}
+.panel-inner{min-height:0;flex:1;background:var(--panel-inner);padding:10px;color:#f2f2f2}
+.panel-inner{min-height:0;flex:1;background:var(--panel-inner);padding:10px;color:#f2f2f2}
+.panel-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 8px;font:500 20px "Pixelify Sans","Courier New",monospace}
+.panel-heading small{font:14px "Atkinson Hyperlegible",system-ui,sans-serif;color:#c9c9c9}
+.field{width:100%;height:36px;padding:6px 10px;background:#efefef;color:#252525;border:3px solid;border-color:#555 #f7f7f7 #f7f7f7 #555;outline:none}
+.field::placeholder{color:#767676}
+.browser-panel .panel-inner,.workbench-panel .panel-inner,.items-panel .panel-inner{display:flex;flex-direction:column}
+.recipe-list{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-content:start;gap:4px;margin-top:9px}
+.recipe-choice,.item-button{min-width:0;aspect-ratio:1;background:#858585;border:3px solid;border-color:#444 #e8e8e8 #e8e8e8 #444;color:#fff;display:flex;align-items:center;justify-content:center;padding:4px;cursor:pointer}
+.recipe-choice,.item-button,.nav a,.recipe-pagination button{transition:transform .12s ease,box-shadow .12s ease,filter .12s ease,background-color .12s ease,border-color .12s ease}
+.recipe-choice:hover,.item-button:hover{position:relative;z-index:1;transform:translateY(-2px) scale(1.06);background:#a5a5a5;border-color:#fff #555 #555 #fff;box-shadow:0 3px 8px #1119;filter:brightness(1.08)}
+.recipe-choice[aria-pressed="true"],.item-button[aria-pressed="true"]{background:#a35e4d;border-color:#f5d3a0 #552b28 #552b28 #f5d3a0;box-shadow:inset 0 0 0 2px #d99770}
+.recipe-choice[aria-pressed="true"]:hover,.item-button[aria-pressed="true"]:hover{background:#bd745b;border-color:#ffe1ae #552b28 #552b28 #ffe1ae;box-shadow:inset 0 0 0 2px #f2ba8d,0 3px 8px #1119}
+.item-image{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+.item-image.failed{display:none}
+.item-fallback{font-size:10px;line-height:1.05;text-align:center;overflow-wrap:anywhere}
+.recipe-choice .item-fallback{font-size:9px}
+.recipe-empty{grid-column:1/-1;color:#ddd;margin:12px 2px}
+.recipe-pagination{display:flex;justify-content:space-between;align-items:center;margin-top:8px;color:#fff}
+.recipe-pagination button{background:#555;color:white;border:2px solid #ddd;padding:3px 10px;cursor:pointer}
+.recipe-pagination button:not(:disabled):hover{background:#777;transform:translateY(-1px);box-shadow:0 2px 5px #1119}
+.recipe-pagination button:disabled{opacity:.45;cursor:default}
+.craft-layout{display:flex;align-items:center;justify-content:center;gap:clamp(10px,2vw,24px);padding:10px 0 14px}
+.craft-grid{display:grid;grid-template-columns:repeat(3,clamp(48px,5vw,66px));gap:4px}
+.craft-grid.small{grid-template-columns:repeat(2,clamp(52px,5.5vw,68px))}
+.craft-slot,.craft-result{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;aspect-ratio:1;background:var(--slot);border:3px solid;border-color:#555 #f0f0f0 #f0f0f0 #555;padding:4px}
+.craft-slot:not(.empty):hover,.craft-result:hover{transform:scale(1.05);filter:brightness(1.15);box-shadow:0 2px 8px #1119}
+.craft-slot.empty{background:#888}
+.craft-slot small{position:absolute;right:2px;bottom:0;color:#fff;font-size:12px;font-weight:700;text-shadow:1px 1px #222}
+.craft-arrow{font-size:clamp(32px,4vw,48px);color:#999}
+.craft-result{width:clamp(62px,6vw,78px)}
+.inventory-grid{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:3px}
+.inventory-slot{aspect-ratio:1;background:var(--slot);border:2px solid;border-color:#555 #eee #eee #555}
+.inventory-slot.hotbar{margin-top:5px}
+.workbench-note{margin:auto 0 0;padding-top:12px;text-align:center;color:#ddd;font-size:13px}
+.item-toolbar{display:flex;align-items:center;gap:8px;margin:7px 0;color:#ddd;font-size:13px}
+.item-toolbar select{min-width:0;max-width:58%;padding:4px;background:#eee;color:#222}
+.item-grid{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(9,minmax(0,1fr));align-content:start;gap:3px;margin-top:4px;padding-right:3px}
+.item-button{padding:4px}
+.item-button[hidden]{display:none}
+.craft-slot:not(.empty),.craft-result{transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}
+#hover-tooltip{position:fixed;z-index:1000;max-width:min(240px,calc(100vw - 16px));padding:5px 8px;background:#171717;color:#fff;border:2px solid #eee;box-shadow:2px 2px 0 #555;font-size:13px;line-height:1.2;text-align:center;pointer-events:none}
+#hover-tooltip[hidden]{display:none}
+.credit{grid-column:1/-1;text-align:right;color:#56706e;font-size:12px}
+@media(max-width:980px){.app{height:auto;grid-template-columns:minmax(220px,.8fr) minmax(340px,1.2fr);grid-template-rows:auto minmax(460px,62vh) minmax(440px,58vh)}.items-panel{grid-column:1/-1}.item-grid{grid-template-columns:repeat(12,minmax(0,1fr))}}
+@media(max-width:620px){.app{width:calc(100% - 16px);height:auto;min-height:0;margin:8px auto;grid-template-columns:1fr;grid-template-rows:auto minmax(440px,58vh) minmax(450px,58vh) minmax(440px,58vh) auto}.topbar{align-items:flex-start;flex-direction:column;padding:8px 2px}.nav{width:100%}.nav a{flex:1;text-align:center}.browser-panel,.workbench-panel,.items-panel{grid-column:1}.recipe-list{grid-template-columns:repeat(6,minmax(0,1fr))}.item-grid{grid-template-columns:repeat(8,minmax(0,1fr))}.craft-grid{grid-template-columns:repeat(3,clamp(52px,15vw,68px))}.craft-grid.small{grid-template-columns:repeat(2,clamp(58px,17vw,74px))}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <div>
+      <h1>Minecraft Crafting</h1>
+      <p class="subtitle">Find a recipe, see the layout, and browse item icons.</p>
+    </div>
+    <nav class="nav" aria-label="Main navigation">
+      <a href="index.html">Chest sorter</a>
+      <a href="crafting.html" aria-current="page">Crafting table</a>
+    </nav>
+  </header>
+  <section class="panel browser-panel" aria-label="Recipe browser">
+    <div class="panel-inner">
+      <h2 class="panel-heading">Search recipes <small id="recipe-count"></small></h2>
+      <input id="q" class="field" type="search" placeholder="Search recipes..." autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search crafting recipes">
+      <div id="recipe-list" class="recipe-list"></div>
+      <div class="recipe-pagination">
+        <button id="previous-page" type="button" aria-label="Previous recipes">◀</button>
+        <span id="page-count" aria-live="polite"></span>
+        <button id="next-page" type="button" aria-label="Next recipes">▶</button>
+      </div>
+    </div>
+  </section>
+  <section class="panel workbench-panel" aria-label="Crafting table and inventory">
+    <div class="panel-inner">
+      <h2 id="crafting-title" class="panel-heading">Crafting</h2>
+      <div class="craft-layout">
+        <div id="craft-grid" class="craft-grid" aria-label="Crafting recipe"></div>
+        <span class="craft-arrow" aria-hidden="true">➜</span>
+        <div id="craft-result" class="craft-result" aria-label="Crafted item"></div>
+      </div>
+      <h2 class="panel-heading">Inventory</h2>
+      <div id="inventory" class="inventory-grid" aria-label="Inventory slots"></div>
+      <p id="workbench-note" class="workbench-note">Select a recipe to see where each item goes.</p>
+    </div>
+  </section>
+  <section class="panel items-panel" aria-label="Item browser">
+    <div class="panel-inner">
+      <h2 class="panel-heading">Search Items</h2>
+      <input id="item-search" class="field" type="search" placeholder="Search items..." autocomplete="off" aria-label="Search item icons">
+      <div class="item-toolbar">
+        <label for="item-category">Filter</label>
+        <select id="item-category" aria-label="Filter item icons">
+          <option value="all">Showing all</option>
+          <option value="ingredient">Recipe ingredients</option>
+          <option value="result">Crafted items</option>
+        </select>
+        <span id="item-count"></span>
+      </div>
+      <div id="item-grid" class="item-grid"></div>
+    </div>
+  </section>
+  <footer class="credit">Minecraft textures served by mcasset.cloud. Minecraft is a Mojang/Microsoft property.</footer>
+</main>
+<script src="recipes.js"></script>
+<script>
+const recipes=Object.values(RECIPES).sort((a,b)=>a.name.localeCompare(b.name));
+const recipeSearch=document.querySelector('#q');
+const recipeList=document.querySelector('#recipe-list');
+const recipeCount=document.querySelector('#recipe-count');
+const pageCount=document.querySelector('#page-count');
+const previousPage=document.querySelector('#previous-page');
+const nextPage=document.querySelector('#next-page');
+const itemSearch=document.querySelector('#item-search');
+const itemCategory=document.querySelector('#item-category');
+const itemGrid=document.querySelector('#item-grid');
+const itemCount=document.querySelector('#item-count');
+const craftGrid=document.querySelector('#craft-grid');
+const craftResult=document.querySelector('#craft-result');
+const craftingTitle=document.querySelector('#crafting-title');
+const workbenchNote=document.querySelector('#workbench-note');
+const pageSize=25;
+let page=0;
+let selectedRecipe=null;
+let visibleRecipes=[];
+
+function element(tag,className,text){
+  const node=document.createElement(tag);
+  if(className)node.className=className;
+  if(text!=null)node.textContent=text;
+  return node;
+}
+
+function imageSlug(name){
+  const aliases={
+    'any planks':'oak_planks','any log or stem':'oak_log','sticks':'stick',
+    'same slab-compatible block (all 3 must match)':'stone',
+    'same stair-compatible block (all 6 must match)':'stone',
+    'cobblestone or blackstone':'cobblestone','coal or charcoal':'coal',
+    'sand or red sand':'sand','nether quartz':'quartz','books':'book',
+    'redstone torches':'redstone_torch','nautilus shells':'nautilus_shell',
+    'prismarine shards':'prismarine_shard','prismarine crystals':'prismarine_crystals',
+    'popped chorus fruit':'chorus_fruit','tripwire hook':'tripwire_hook',
+    'any wooden slabs':'oak_planks','stairs':'stone','slab':'stone','planks':'oak_planks'
+  };
+  const normalized=name.toLowerCase().trim();
+  if(aliases[normalized])return aliases[normalized];
+  let slug=normalized.replace(/\s*\([^)]*\)/g,'').replace(/^any /,'').replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+  if(slug.endsWith('_stairs')||slug.endsWith('_slab')){
+    const material=slug.replace(/_(stairs|slab)$/,'');
+    const woodTypes=['oak','spruce','birch','jungle','acacia','dark_oak','mangrove','cherry','bamboo','crimson','warped'];
+    slug=woodTypes.includes(material)?`${material}_planks`:material;
+  }
+  if(slug.endsWith('_brick'))slug+='s';
+  if(slug.endsWith('_tile'))slug+='s';
+  const textureAliases={
+    crafting_table:'crafting_table_front',quartz_block:'quartz_block_side',glass_pane:'glass',grass_block:'grass_block_side',
+    barrel:'barrel_side',crossbow:'crossbow_standby',chest:'oak_planks',furnace:'furnace_front',
+    end_rod:'end_rod',stone_brick:'stone_bricks',nether_brick:'nether_bricks',
+    dispenser:'dispenser_front',dropper:'dropper_front',eye_of_ender:'ender_eye',
+    glistering_melon:'glistering_melon_slice',observer:'observer_front',piston:'piston_side',
+    sticky_piston:'piston_side',redstone_dust:'redstone',shield:'shield_base_nopattern',
+    slimeball:'slime_ball',smooth_quartz:'quartz_block_side',smooth_red_sandstone:'red_sandstone',
+    smooth_sandstone:'sandstone',stone_button:'stone',stone_pressure_plate:'stone',
+    tnt:'tnt_side',wooden_button:'oak_planks',wooden_pressure_plate:'oak_planks',purpur:'purpur_block'
+  };
+  return textureAliases[slug]||slug;
+}
+
+function imageCandidates(name){
+  const slug=imageSlug(name);
+  const handheld=/^(?:wooden|stone|iron|golden|diamond|leather)_(?:pickaxe|axe|hoe|sword|shovel|helmet|chestplate|leggings|boots)$/.test(slug);
+  const itemOnly=new Set([
+    'iron_ingot','gold_ingot','diamond','emerald','coal','charcoal','redstone','lapis_lazuli','quartz','netherite_scrap','netherite_ingot',
+    'blaze_rod','blaze_powder','ender_pearl','string','leather','feather','gunpowder','bone','bone_meal','spider_eye','ghast_tear','magma_cream',
+    'slime_ball','honeycomb','flint','paper','book','sugar','apple','golden_apple','golden_carrot','bread','wheat','carrot','potato',
+    'raw_cod','raw_salmon','pufferfish','tropical_fish','kelp','chorus_fruit','stick','bow','crossbow','fishing_rod','shears','flint_and_steel',
+    'bucket','iron_pickaxe','diamond_pickaxe','iron_axe','diamond_axe','iron_sword','diamond_sword','iron_helmet','diamond_helmet',
+    'iron_chestplate','diamond_chestplate','iron_leggings','diamond_leggings','iron_boots','diamond_boots','trident','elytra','shield',
+    'nautilus_shell','heart_of_the_sea','turtle_scute','shulker_shell','ink_sac','glow_ink_sac','phantom_membrane','rabbit_hide','rabbit_foot',
+    'nether_wart','glass_bottle','potion','experience_bottle','prismarine_shard','prismarine_crystals','tripwire_hook','redstone_torch',
+    'ender_eye','glistering_melon_slice'
+  ]);
+  const root='https://assets.mcasset.cloud/1.21.4/assets/minecraft/textures';
+  if(slug==='shield_base_nopattern')return [`${root}/entity/${slug}.png`];
+  return itemOnly.has(slug)||handheld
+    ?[`${root}/item/${slug}.png`,`${root}/block/${slug}.png`]
+    :[`${root}/block/${slug}.png`,`${root}/item/${slug}.png`];
+}
+
+function addIcon(parent,name){
+  const img=element('img','item-image');
+  img.alt=name;
+  img.loading='lazy';
+  img.decoding='async';
+  const fallback=element('span','item-fallback',name);
+  fallback.hidden=true;
+  const sources=imageCandidates(name);
+  let sourceIndex=0;
+  img.onerror=()=>{
+    sourceIndex++;
+    if(sourceIndex<sources.length)img.src=sources[sourceIndex];
+    else{img.classList.add('failed');fallback.hidden=false;}
+  };
+  img.src=sources[sourceIndex];
+  parent.append(img,fallback);
+}
+
+function recipeMatches(query){
+  const normalized=query.trim().toLowerCase().replace(/\s+/g,' ');
+  if(!normalized)return recipes;
+  const exact=findRecipe(normalized);
+  const matches=recipes.filter(recipe=>recipe.name.includes(normalized)||recipe.ingredients.some(([item])=>item.toLowerCase().includes(normalized)));
+  return exact?[exact,...matches.filter(recipe=>recipe!==exact)]:matches;
+}
+
+function renderRecipeList(){
+  const matches=recipeMatches(recipeSearch.value);
+  const lastPage=Math.max(0,Math.ceil(matches.length/pageSize)-1);
+  page=Math.min(page,lastPage);
+  visibleRecipes=matches.slice(page*pageSize,(page+1)*pageSize);
+  recipeCount.textContent=String(matches.length);
+  pageCount.textContent=matches.length?`${page+1} / ${lastPage+1}`:'0 / 0';
+  previousPage.disabled=page===0;
+  nextPage.disabled=page>=lastPage;
+  recipeList.replaceChildren();
+  if(!visibleRecipes.length)recipeList.appendChild(element('p','recipe-empty','No matching recipes.'));
+  visibleRecipes.forEach(recipe=>{
+    const button=element('button','recipe-choice');
+    button.type='button';
+    button.dataset.hoverLabel=recipe.name;
+    button.setAttribute('aria-label',recipe.name);
+    button.setAttribute('aria-pressed',String(recipe===selectedRecipe));
+    addIcon(button,recipe.name);
+    button.onclick=()=>selectRecipe(recipe);
+    recipeList.appendChild(button);
+  });
+}
+
+function addSlot(parent,slot){
+  const cell=element('div',`craft-slot${slot?'':' empty'}`);
+  if(slot){
+    addIcon(cell,slot.item);
+    if(slot.count>1)cell.appendChild(element('small',null,String(slot.count)));
+    cell.dataset.hoverLabel=`${slot.item}${slot.count>1?` × ${slot.count}`:''}`;
+    cell.setAttribute('aria-label',cell.dataset.hoverLabel);
+  }else{
+    cell.dataset.hoverLabel='Empty crafting slot';
+    cell.setAttribute('aria-label',cell.dataset.hoverLabel);
+  }
+  parent.appendChild(cell);
+}
+
+function selectRecipe(recipe){
+  selectedRecipe=recipe;
+  const size=recipe.station==='Crafting grid'?2:3;
+  craftGrid.replaceChildren();
+  craftGrid.className=`craft-grid${size===2?' small':''}`;
+  getRecipeSlots(recipe,size).forEach(slot=>addSlot(craftGrid,slot));
+  craftResult.replaceChildren();
+  addIcon(craftResult,recipe.name);
+  craftResult.dataset.hoverLabel=`${recipe.name} × ${recipe.output}`;
+  craftResult.setAttribute('aria-label',craftResult.dataset.hoverLabel);
+  craftingTitle.textContent=recipe.station==='Crafting grid'?'Inventory Crafting':'Crafting';
+  workbenchNote.textContent=`${recipe.name} · Makes ${recipe.output}`;
+  renderRecipeList();
+}
+
+function buildItemCatalog(){
+  const catalog=new Map();
+  recipes.forEach(recipe=>{
+    catalog.set(recipe.name.toLowerCase(),{name:recipe.name,type:'result'});
+    recipe.ingredients.forEach(([name])=>{
+      if(!catalog.has(name.toLowerCase()))catalog.set(name.toLowerCase(),{name,type:'ingredient'});
+    });
+  });
+  return [...catalog.values()].sort((a,b)=>a.name.localeCompare(b.name));
+}
+
+const itemButtons=[];
+function renderItemCatalog(){
+  const query=itemSearch.value.trim().toLowerCase();
+  const category=itemCategory.value;
+  let count=0;
+  itemButtons.forEach(({button,item})=>{
+    const shown=item.name.toLowerCase().includes(query)&&(category==='all'||item.type===category);
+    button.hidden=!shown;
+    if(shown)count++;
+  });
+  itemCount.textContent=`${count} items`;
+}
+
+function renderInventory(){
+  const inventory=document.querySelector('#inventory');
+  for(let index=0;index<36;index++){
+    const slot=element('div',`inventory-slot${index>=27?' hotbar':''}`);
+    slot.dataset.hoverLabel=`Empty inventory slot ${index+1}`;
+    slot.setAttribute('aria-label',slot.dataset.hoverLabel);
+    inventory.appendChild(slot);
+  }
+}
+
+function render(){
+  page=0;
+  const matches=recipeMatches(recipeSearch.value);
+  if(matches.length)selectRecipe(matches[0]);
+  else{
+    selectedRecipe=null;
+    craftGrid.replaceChildren();
+    craftResult.replaceChildren();
+    craftingTitle.textContent='Crafting';
+    workbenchNote.textContent='No recipe matches this search.';
+    renderRecipeList();
+  }
+  renderRecipeList();
+  renderItemCatalog();
+}
+
+buildItemCatalog().forEach(item=>{
+  const button=element('button','item-button');
+  button.type='button';
+  button.dataset.hoverLabel=item.name;
+  button.setAttribute('aria-label',item.name);
+  addIcon(button,item.name);
+  button.onclick=()=>{
+    recipeSearch.value=item.name;
+    render();
+    const match=recipeMatches(item.name)[0];
+    if(match)selectRecipe(match);
+    itemSearch.value=item.name;
+    renderItemCatalog();
+  };
+  itemButtons.push({button,item});
+  itemGrid.appendChild(button);
+});
+
+recipeSearch.addEventListener('input',render);
+itemSearch.addEventListener('input',renderItemCatalog);
+itemCategory.addEventListener('change',renderItemCatalog);
+previousPage.addEventListener('click',()=>{page--;renderRecipeList()});
+nextPage.addEventListener('click',()=>{page++;renderRecipeList()});
+const hoverTooltip=element('div');
+hoverTooltip.id='hover-tooltip';
+hoverTooltip.setAttribute('role','tooltip');
+hoverTooltip.hidden=true;
+document.body.appendChild(hoverTooltip);
+
+function showHoverTooltip(target){
+  const label=target.dataset.hoverLabel;
+  if(!label)return;
+  hoverTooltip.textContent=label;
+  hoverTooltip.hidden=false;
+  const rect=target.getBoundingClientRect();
+  const tooltipRect=hoverTooltip.getBoundingClientRect();
+  const margin=8;
+  const left=Math.min(Math.max(rect.left+rect.width/2-tooltipRect.width/2,margin),innerWidth-tooltipRect.width-margin);
+  const top=rect.top>=tooltipRect.height+margin*2
+    ?rect.top-margin
+    :Math.min(rect.bottom+margin,innerHeight-tooltipRect.height-margin);
+  hoverTooltip.style.left=`${left}px`;
+  hoverTooltip.style.top=`${top}px`;
+  hoverTooltip.style.transform=rect.top>=tooltipRect.height+margin*2?'translateY(-100%)':'none';
+}
+
+document.addEventListener('pointerover',event=>{
+  const target=event.target.closest('[data-hover-label]');
+  if(target)showHoverTooltip(target);
+});
+document.addEventListener('pointerout',event=>{
+  if(event.target.closest('[data-hover-label]')&&!event.relatedTarget?.closest?.('[data-hover-label]'))hoverTooltip.hidden=true;
+});
+document.addEventListener('focusin',event=>{
+  const target=event.target.closest('[data-hover-label]');
+  if(target)showHoverTooltip(target);
+});
+document.addEventListener('focusout',event=>{
+  if(event.target.closest('[data-hover-label]'))hoverTooltip.hidden=true;
+});
+renderInventory();
+render();
+</script>
+</body>
+</html>
